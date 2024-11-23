@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRT Relay Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <h1>SRT Relay Control</h1>
+    <form id="relay-form">
+        <label for="sender-port">Sender Port</label>
+        <input type="number" id="sender-port" placeholder="e.g., 1935" required>
+
+        <label for="receiver-port">Receiver Port</label>
+        <input type="number" id="receiver-port" placeholder="e.g., 1936" required>
+
+        <label for="sender-passphrase">Sender Passphrase (optional)</label>
+        <input type="text" id="sender-passphrase" placeholder="Enter passphrase">
+
+        <label for="receiver-passphrase">Receiver Passphrase (optional)</label>
+        <input type="text" id="receiver-passphrase" placeholder="Enter passphrase">
+
+        <button type="button" onclick="startRelay()">Start Relay</button>
+        <button type="button" onclick="stopRelay()" style="background-color: #dc3545; margin-top: 10px;">Stop Relay</button>
+    </form>
+    <div id="status" class="status"></div>
+
+    <script>
+        async function startRelay() {
+            const senderPort = document.getElementById('sender-port').value;
+            const receiverPort = document.getElementById('receiver-port').value;
+            const senderPassphrase = document.getElementById('sender-passphrase').value.trim();
+            const receiverPassphrase = document.getElementById('receiver-passphrase').value.trim();
+
+            const data = {
+                sender_port: senderPort,
+                receiver_port: receiverPort,
+                sender_passphrase: senderPassphrase || null, // Send null if empty
+                receiver_passphrase: receiverPassphrase || null, // Send null if empty
+            };
+
+            const response = await fetch('/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            document.getElementById('status').innerText = result.message || result.error;
+        }
+
+        async function stopRelay() {
+            const response = await fetch('/stop', { method: 'POST' });
+            const result = await response.json();
+            document.getElementById('status').innerText = result.message || result.error;
+        }
+
+        async function checkStatus() {
+            const response = await fetch('/status');
+            const result = await response.json();
+            document.getElementById('status').innerText = `Relay Status: ${result.status}`;
+        }
+
+        setInterval(checkStatus, 5000); // Automatically update status every 5 seconds
+    </script>
+</body>
+</html>
