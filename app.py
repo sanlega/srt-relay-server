@@ -1,38 +1,57 @@
+import random
+import string
 from flask import Flask, request, jsonify, render_template
 import subprocess
-import os
 
 app = Flask(__name__)
 process = None  # Variable to store the process ID
+stream_id = None  # Global variable for the stream ID
+
+
+def generate_stream_id():
+    """Generate a random stream ID with optional metadata."""
+    unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+    return f"streamid={unique_id}"
 
 
 @app.route("/")
 def index():
     """Serve the frontend."""
-    return render_template("index.html")
+    global stream_id
+    if stream_id is None:  # Generate a stream ID if not already set
+        stream_id = generate_stream_id()
+    return render_template("index.html", stream_id=stream_id)
+
+
+@app.route("/get_stream_id", methods=["GET"])
+def get_stream_id():
+    """Get the current stream ID."""
+    return jsonify({"stream_id": stream_id})
+
+
+@app.route("/regenerate_stream_id", methods=["POST"])
+def regenerate_stream_id():
+    """Regenerate the stream ID."""
+    global stream_id
+    stream_id = generate_stream_id()
+    return jsonify({"stream_id": stream_id})
 
 
 @app.route("/start", methods=["POST"])
 def start_relay():
     """Start the SRT relay."""
-    global process
+    global process, stream_id
     if process:
         return jsonify({"error": "Relay already running"}), 400
 
     data = request.json
     sender_port = data["sender_port"]
     receiver_port = data["receiver_port"]
-    sender_passphrase = data.get("sender_passphrase", "")
-    receiver_passphrase = data.get("receiver_passphrase", "")
+    user_stream_id = data.get("stream_id", stream_id)  # Use user-provided or current stream ID
 
-    # Build the SRT URLs with optional passphrases
-    sender_url = f"srt://0.0.0.0:{sender_port}?mode=listener"
-    if sender_passphrase:
-        sender_url += f"&passphrase={sender_passphrase}"
-
-    receiver_url = f"srt://0.0.0.0:{receiver_port}?mode=listener"
-    if receiver_passphrase:
-        receiver_url += f"&passphrase={receiver_passphrase}"
+    # Build the SRT URLs with the stream ID
+    sender_url = f"srt://0.0.0.0:{sender_port}?mode=listener&{user_stream_id}"
+    receiver_url = f"srt://0.0.0.0:{receiver_port}?mode=listener&{user_stream_id}"
 
     # Start srt-live-transmit
     cmd = f"srt-live-transmit '{sender_url}' '{receiver_url}'"
