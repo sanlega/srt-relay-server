@@ -67,11 +67,11 @@
         <label for="receiver-port">Receiver Port</label>
         <input type="number" id="receiver-port" placeholder="e.g., 1936" required>
 
-        <label for="sender-passphrase">Sender Passphrase (optional)</label>
-        <input type="text" id="sender-passphrase" placeholder="Enter passphrase">
-
-        <label for="receiver-passphrase">Receiver Passphrase (optional)</label>
-        <input type="text" id="receiver-passphrase" placeholder="Enter passphrase">
+        <label for="stream-id">Stream ID</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="stream-id" readonly>
+            <button type="button" onclick="regenerateStreamID()" style="background-color: #28a745;">Regenerate</button>
+        </div>
 
         <button type="button" onclick="startRelay()">Start Relay</button>
         <button type="button" onclick="stopRelay()" style="background-color: #dc3545; margin-top: 10px;">Stop Relay</button>
@@ -79,17 +79,27 @@
     <div id="status" class="status"></div>
 
     <script>
+        async function fetchStreamID() {
+            const response = await fetch('/get_stream_id');
+            const result = await response.json();
+            document.getElementById('stream-id').value = result.stream_id;
+        }
+
+        async function regenerateStreamID() {
+            const response = await fetch('/regenerate_stream_id', { method: 'POST' });
+            const result = await response.json();
+            document.getElementById('stream-id').value = result.stream_id;
+        }
+
         async function startRelay() {
             const senderPort = document.getElementById('sender-port').value;
             const receiverPort = document.getElementById('receiver-port').value;
-            const senderPassphrase = document.getElementById('sender-passphrase').value.trim();
-            const receiverPassphrase = document.getElementById('receiver-passphrase').value.trim();
+            const streamID = document.getElementById('stream-id').value;
 
             const data = {
                 sender_port: senderPort,
                 receiver_port: receiverPort,
-                sender_passphrase: senderPassphrase || null, // Send null if empty
-                receiver_passphrase: receiverPassphrase || null, // Send null if empty
+                stream_id: streamID,
             };
 
             const response = await fetch('/start', {
@@ -114,7 +124,9 @@
             document.getElementById('status').innerText = `Relay Status: ${result.status}`;
         }
 
-        setInterval(checkStatus, 5000); // Automatically update status every 5 seconds
+        // Fetch the initial stream ID and set up status updates
+        fetchStreamID();
+        setInterval(checkStatus, 5000);
     </script>
 </body>
 </html>
