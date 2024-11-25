@@ -1,7 +1,8 @@
 import random
 import string
-from flask import Flask, request, jsonify, render_template
 import subprocess
+import requests
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 process = None  # Variable to store the process ID
@@ -12,6 +13,16 @@ def generate_stream_id():
     """Generate a random stream ID with optional metadata."""
     unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     return f"streamid={unique_id}"
+
+
+def get_public_ip():
+    """Fetch the public IP of the machine."""
+    try:
+        response = requests.get("https://api.ipify.org")
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException:
+        return "0.0.0.0"  # Fallback if unable to fetch IP
 
 
 @app.route("/")
@@ -45,19 +56,26 @@ def start_relay():
         return jsonify({"error": "Relay already running"}), 400
 
     data = request.json
-    sender_port = data["sender_port"]
-    receiver_port = data["receiver_port"]
+    sender_port = data.get("sender_port", 1935)  # Default port for sender
+    receiver_port = data.get("receiver_port", 1936)  # Default port for receiver
     user_stream_id = data.get("stream_id", stream_id)  # Use user-provided or current stream ID
 
-    # Build the SRT URLs with the stream ID
-    sender_url = f"srt://0.0.0.0:{sender_port}?mode=listener&{user_stream_id}"
-    receiver_url = f"srt://0.0.0.0:{receiver_port}?mode=listener&{user_stream_id}"
+    public_ip = get_public_ip()
+
+    # Build the SRT URLs with the stream ID and public IP
+    sender_url = f"srt://{public_ip}:{sender_port}?mode=listener&{user_stream_id}"
+    receiver_url = f"srt://{public_ip}:{receiver_port}?mode=listener&{user_stream_id}"
 
     # Start srt-live-transmit
     cmd = f"srt-live-transmit '{sender_url}' '{receiver_url}'"
     process = subprocess.Popen(cmd, shell=True)
 
-    return jsonify({"message": "Relay started", "pid": process.pid})
+    return jsonify({
+        "message": "Relay started",
+        "pid": process.pid,
+        "sender_url": sender_url,
+        "receiver_url": receiver_url
+    })
 
 
 @app.route("/stop", methods=["POST"])
