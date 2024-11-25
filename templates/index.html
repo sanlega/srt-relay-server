@@ -9,32 +9,35 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f7f7f7;
+            background-color: #121212;
+            color: #e0e0e0;
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: #ffffff;
         }
         form {
             max-width: 500px;
             margin: 20px auto;
             padding: 20px;
-            background: #fff;
+            background: #1e1e1e;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
         label {
             font-weight: bold;
             display: block;
             margin-bottom: 5px;
-            color: #555;
+            color: #bbbbbb;
         }
         input {
             width: 100%;
             padding: 8px;
             margin-bottom: 15px;
-            border: 1px solid #ddd;
+            border: 1px solid #333333;
             border-radius: 5px;
+            background: #2e2e2e;
+            color: #e0e0e0;
         }
         button {
             display: block;
@@ -54,18 +57,27 @@
             margin-top: 20px;
             text-align: center;
             font-weight: bold;
-            color: #007BFF;
+            color: #00bfff;
+        }
+        .url-display {
+            background: #1e1e1e;
+            padding: 10px;
+            border: 1px solid #333333;
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #00ff00;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
     <h1>SRT Relay Control</h1>
     <form id="relay-form">
-        <label for="sender-port">Sender Port</label>
-        <input type="number" id="sender-port" placeholder="e.g., 1935" required>
+        <label for="sender-port">Sender Port (default: 1935)</label>
+        <input type="number" id="sender-port" placeholder="1935">
 
-        <label for="receiver-port">Receiver Port</label>
-        <input type="number" id="receiver-port" placeholder="e.g., 1936" required>
+        <label for="receiver-port">Receiver Port (default: 1936)</label>
+        <input type="number" id="receiver-port" placeholder="1936">
 
         <label for="stream-id">Stream ID</label>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -75,6 +87,9 @@
 
         <button type="button" onclick="startRelay()">Start Relay</button>
         <button type="button" onclick="stopRelay()" style="background-color: #dc3545; margin-top: 10px;">Stop Relay</button>
+
+        <div class="url-display" id="sender-url"></div>
+        <div class="url-display" id="receiver-url"></div>
     </form>
     <div id="status" class="status"></div>
 
@@ -92,8 +107,8 @@
         }
 
         async function startRelay() {
-            const senderPort = document.getElementById('sender-port').value;
-            const receiverPort = document.getElementById('receiver-port').value;
+            const senderPort = document.getElementById('sender-port').value || 1935;
+            const receiverPort = document.getElementById('receiver-port').value || 1936;
             const streamID = document.getElementById('stream-id').value;
 
             const data = {
@@ -110,12 +125,16 @@
 
             const result = await response.json();
             document.getElementById('status').innerText = result.message || result.error;
+            document.getElementById('sender-url').innerText = result.sender_url || '';
+            document.getElementById('receiver-url').innerText = result.receiver_url || '';
         }
 
         async function stopRelay() {
             const response = await fetch('/stop', { method: 'POST' });
             const result = await response.json();
             document.getElementById('status').innerText = result.message || result.error;
+            document.getElementById('sender-url').innerText = '';
+            document.getElementById('receiver-url').innerText = '';
         }
 
         async function checkStatus() {
