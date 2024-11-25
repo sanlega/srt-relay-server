@@ -1,4 +1,4 @@
-# SRT Relay Project
+# SRT Relay Project w/Control Panel
 
 This project sets up an SRT relay server using Flask and `srt-live-transmit`.
 
