@@ -20,13 +20,11 @@ This project sets up an SRT relay server using Flask and `srt-live-transmit`.
    ```
 2. Run the setup script:
     ```bash
-    Copiar código
     ./setup.sh
     ```
 3. Start the Flask app:
 
     ```bash
-    Copiar código
     ./start.sh
     ```
 4. Access the web interface:
