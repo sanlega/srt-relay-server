@@ -53,7 +53,11 @@ def start_relay():
     """Start the SRT relay."""
     global process, stream_id
     if process:
-        return jsonify({"error": "Relay already running"}), 400
+        # Check if the previous process has exited unexpectedly
+        if process.poll() is None:
+            return jsonify({"error": "Relay already running"}), 400
+        # Clean up if the process has finished
+        process = None
 
     data = request.json
     sender_port = data.get("sender_port", 1935)  # Default port for sender
@@ -85,7 +89,9 @@ def stop_relay():
     if not process:
         return jsonify({"error": "No relay is running"}), 400
 
-    process.terminate()  # Stop the process
+    # Terminate only if it's still running
+    if process.poll() is None:
+        process.terminate()
     process = None
     return jsonify({"message": "Relay stopped"})
 
@@ -94,8 +100,11 @@ def stop_relay():
 def status():
     """Check the status of the relay."""
     global process
-    if process and process.poll() is None:  # Process is running
-        return jsonify({"status": "running"})
+    if process:
+        if process.poll() is None:
+            return jsonify({"status": "running"})
+        # Clean up if the process has finished
+        process = None
     return jsonify({"status": "stopped"})
 
 
